@@ -23,6 +23,11 @@ function fw_ext_learning_quiz_has_quiz( $post_id ) {
 	$learning_quiz = fw()->extensions->get( 'learning-quiz' );
 
 	$quiz_questions = fw_get_db_post_option( $post_id, $learning_quiz->get_name() . '-questions' );
+
+	if ( ! is_array( $quiz_questions ) || ! isset( $quiz_questions['json'] ) ) {
+		return false;
+	}
+
 	$quiz_questions = json_decode( $quiz_questions['json'] );
 
 	if ( empty( $quiz_questions ) ) {
@@ -134,4 +139,26 @@ function fw_ext_learning_quiz_get_response( $id = null ) {
 	$response = FW_Session::get( 'learning-quiz-form-process-response' );
 
 	return $response;
+}
+
+/**
+ * Flatten a quiz answer (scalar, bool, or array of choices) into a readable string.
+ *
+ * @param mixed $answer
+ *
+ * @return string
+ */
+function fw_ext_learning_quiz_format_answer( $answer ) {
+	if ( is_array( $answer ) ) {
+		$parts = array_map( 'fw_ext_learning_quiz_format_answer', $answer );
+		$parts = array_filter( $parts, 'strlen' );
+
+		return implode( ', ', $parts );
+	}
+
+	if ( is_bool( $answer ) ) {
+		return $answer ? __( 'True', 'fw' ) : __( 'False', 'fw' );
+	}
+
+	return trim( (string) $answer );
 }

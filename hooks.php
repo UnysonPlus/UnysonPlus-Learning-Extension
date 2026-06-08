@@ -78,7 +78,7 @@ function _filter_admin_manage_lessons_columns( $column, $ID ) {
 			echo '&#8212;';
 		} else {
 			$permalink = get_permalink( $parent->ID );
-			echo '<a href="' . $permalink . '">' . $parent->post_title . '</a>';
+			echo '<a href="' . esc_url( $permalink ) . '">' . esc_html( $parent->post_title ) . '</a>';
 		}
 	}
 }

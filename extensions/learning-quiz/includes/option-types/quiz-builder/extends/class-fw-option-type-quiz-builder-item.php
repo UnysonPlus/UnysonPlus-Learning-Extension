@@ -53,10 +53,18 @@ abstract class FW_Option_Type_Quiz_Builder_Item extends FW_Option_Type_Builder_I
 						'placeholder' => __( 'Type the question...', 'fw' )
 					),
 				),
-				'points'   => array(
+				'points'      => array(
 					'type'  => 'text',
 					'label' => __( 'Points', 'fw' ),
 					'value' => 10
+				),
+				'explanation' => array(
+					'type'  => 'textarea',
+					'label' => __( 'Explanation', 'fw' ),
+					'value' => '',
+					'attr'  => array(
+						'placeholder' => __( 'Optional. Shown to students as feedback after they answer.', 'fw' )
+					),
 				)
 			)
 		);

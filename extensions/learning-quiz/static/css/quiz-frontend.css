@@ -1,0 +1,98 @@
+/* Front-end styling for quiz answer feedback and the countdown timer. */
+
+.learning-quiz-feedback {
+	margin: 1.5em 0;
+}
+
+.learning-quiz-feedback-item {
+	border: 1px solid #e2e2e2;
+	border-left-width: 4px;
+	border-radius: 4px;
+	padding: 12px 16px;
+	margin-bottom: 12px;
+	background: #fafafa;
+}
+
+.learning-quiz-feedback-correct {
+	border-left-color: #1a7f37;
+}
+
+.learning-quiz-feedback-partial {
+	border-left-color: #bf8700;
+}
+
+.learning-quiz-feedback-incorrect {
+	border-left-color: #b32d2e;
+}
+
+.learning-quiz-feedback-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.learning-quiz-feedback-head strong {
+	flex: 1 1 60%;
+}
+
+.learning-quiz-feedback-badge {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .03em;
+	color: #fff;
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
+.learning-quiz-feedback-correct .learning-quiz-feedback-badge {
+	background: #1a7f37;
+}
+
+.learning-quiz-feedback-partial .learning-quiz-feedback-badge {
+	background: #bf8700;
+}
+
+.learning-quiz-feedback-incorrect .learning-quiz-feedback-badge {
+	background: #b32d2e;
+}
+
+.learning-quiz-feedback-points {
+	font-size: 12px;
+	color: #555;
+	white-space: nowrap;
+}
+
+.learning-quiz-feedback-item p {
+	margin: 8px 0 0;
+}
+
+.learning-quiz-feedback-your span,
+.learning-quiz-feedback-correct-answer span {
+	font-weight: 600;
+}
+
+.learning-quiz-feedback-explanation {
+	font-style: italic;
+	color: #444;
+	border-top: 1px dashed #ddd;
+	padding-top: 8px;
+}
+
+.learning-quiz-timer {
+	display: inline-block;
+	margin: 12px 0;
+	padding: 8px 14px;
+	border-radius: 4px;
+	background: #1d2327;
+	color: #fff;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.learning-quiz-timer-display {
+	font-size: 1.1em;
+	letter-spacing: .04em;
+}

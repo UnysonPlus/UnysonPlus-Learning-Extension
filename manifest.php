@@ -1,5 +1,35 @@
 <?php if (!defined('FW')) die('Forbidden');
 
+/**
+ * Changelog ----------------------------------------------------------------
+ *
+ * 1.0.18 - Short Answer question type. Adds a free-text question that the
+ *          teacher auto-grades by supplying one or more accepted answers;
+ *          a submission matching any of them (case-insensitive, whitespace
+ *          collapsed) earns full points. Registered alongside the existing
+ *          single/multiple choice, true-false and gap-fill items.
+ *
+ * 1.0.17 - Quiz shuffle and time limit. New per-lesson Quiz Settings let a
+ *          teacher randomize question order per attempt and set a countdown
+ *          (minutes) that auto-submits the quiz at zero. The limit is also
+ *          enforced server-side: a submission arriving after the allotted
+ *          time (plus a short grace) cannot pass.
+ *
+ * 1.0.16 - Per-question answer feedback. After submitting, students can see
+ *          which questions they got right, wrong, or partially right, their
+ *          answer, the correct answer, and an optional teacher-written
+ *          Explanation (a new field available on every question type).
+ *          Toggle per lesson via "Show answer feedback".
+ *
+ * 1.0.15 - Teacher gradebook. Every graded quiz submission is now persisted
+ *          to a dedicated table ({prefix}fw_learning_quiz_attempts) instead
+ *          of being discarded with the page session. A new "Quiz Results"
+ *          admin screen under the Learning menu lists each attempt (student,
+ *          quiz, course, score, pass/fail, date) with a per-quiz filter and
+ *          CSV export. Scores are always recomputed server-side, never taken
+ *          from the submission.
+ */
+
 $manifest = array();
 
 $manifest['name']        = __( 'Learning', 'fw' );
@@ -10,7 +40,7 @@ $manifest['description'] = __(
 	'fw'
 );
 
-$manifest['version']     = '1.0.13';
+$manifest['version']     = '1.0.18';
 $manifest['display']     = true;
 $manifest['standalone']  = true;
 

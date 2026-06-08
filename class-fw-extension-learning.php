@@ -275,10 +275,10 @@ class FW_Extension_Learning extends FW_Extension {
 		}
 
 		$courses = get_posts( array(
-			'post_type'     => $this->courses,
-			'post_status'   => 'any',
-			'post_per_page' => - 1,
-			'post_parent'   => 0,
+			'post_type'      => $this->courses,
+			'post_status'    => 'any',
+			'posts_per_page' => - 1,
+			'post_parent'    => 0,
 		) );
 
 		$form = '<select name="' . $this->get_name() . '-filter-by-course">' .
@@ -288,8 +288,8 @@ class FW_Extension_Learning extends FW_Extension {
 		$id  = ( ! empty( $get ) ) ? (int) $get : 0;
 
 		foreach ( $courses as $course ) {
-			$selected = ( $id == $course->ID ) ? 'selected="selcted"' : '';
-			$form .= '<option value="' . $course->ID . '" ' . $selected . '>' . $course->post_title . '</option>';
+			$selected = ( $id == $course->ID ) ? 'selected="selected"' : '';
+			$form .= '<option value="' . esc_attr( (int) $course->ID ) . '" ' . $selected . '>' . esc_html( $course->post_title ) . '</option>';
 		}
 		$form .= '</select>';
 
@@ -409,10 +409,10 @@ class FW_Extension_Learning extends FW_Extension {
 		}
 
 		$lessons = get_posts( array(
-			'post_type'     => $this->lessons,
-			'post_parent'   => $post->ID,
-			'post_per_page' => 300,
-			'post_status'   => $old_status
+			'post_type'      => $this->lessons,
+			'post_parent'    => $post->ID,
+			'posts_per_page' => 300,
+			'post_status'    => $old_status
 		) );
 
 		if ( empty( $lessons ) || is_wp_error( $lessons ) ) {
@@ -748,7 +748,7 @@ class FW_Extension_Learning extends FW_Extension {
 		global $wpdb;
 
 		$result = $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM {$wpdb->posts} AS p " .
+			"SELECT * FROM " . $wpdb->posts . " AS p " .
 			"WHERE p.post_date < %s AND p.post_type = %s AND p.post_parent = %d AND p.post_status = 'publish' " .
 			"ORDER BY p.post_date DESC LIMIT 1",
 			$post->post_date,
@@ -790,7 +790,7 @@ class FW_Extension_Learning extends FW_Extension {
 		global $wpdb;
 
 		$result = $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM {$wpdb->posts} AS p " .
+			"SELECT * FROM " . $wpdb->posts . " AS p " .
 			"WHERE p.post_date > %s AND p.post_type = %s AND p.post_parent = %d AND p.post_status = 'publish' " .
 			"ORDER BY p.post_date ASC LIMIT 1",
 			$post->post_date,

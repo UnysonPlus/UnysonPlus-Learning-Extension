@@ -167,6 +167,10 @@ class FW_Option_Type_Quiz_Builder extends FW_Option_Type_Builder {
 			$response = $item_types[ $item['type'] ]->process_item( $item, $input_value );
 
 			if ( $response ) {
+				if ( isset( $item['options']['explanation'] ) && is_string( $item['options']['explanation'] ) ) {
+					$response->set_explanation( $item['options']['explanation'] );
+				}
+
 				$process_response[ $item['shortcode'] ] = $response;
 			}
 
@@ -323,6 +327,13 @@ class FW_Quiz_Question_Process_Response {
 	private $comments = '';
 
 	/**
+	 * Optional teacher-written explanation shown to students as feedback.
+	 *
+	 * @var string
+	 */
+	private $explanation = '';
+
+	/**
 	 * @param string $question
 	 * @param int|float|string|array $correct_answer
 	 * @param int|float|string|array $current_answer
@@ -410,6 +421,15 @@ class FW_Quiz_Question_Process_Response {
 	}
 
 	/**
+	 * @param string $explanation
+	 */
+	public function set_explanation( $explanation ) {
+		if ( is_string( $explanation ) ) {
+			$this->explanation = $explanation;
+		}
+	}
+
+	/**
 	 * @return string
 	 */
 	public function get_question() {
@@ -449,5 +469,12 @@ class FW_Quiz_Question_Process_Response {
 	 */
 	public function get_comments() {
 		return $this->comments;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_explanation() {
+		return $this->explanation;
 	}
 }

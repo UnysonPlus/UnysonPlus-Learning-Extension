@@ -17,13 +17,13 @@ $lessons = fw_ext_learning_get_course_lessons( $post->ID )
 			<div class="lesson-item">
 				<?php if ( get_the_post_thumbnail( $lesson->ID ) != '' ) : ?>
 					<div class="lesson-thumbnail">
-						<a href="<?php echo get_permalink( $lesson->ID ) ?>">
+						<a href="<?php echo esc_url( get_permalink( $lesson->ID ) ) ?>">
 							<?php echo get_the_post_thumbnail( $lesson->ID, array( 64, 64 ) ) ?>
 						</a>
 					</div>
 				<?php endif ?>
 				<div class="lesson-desc">
-					<h4><a href="<?php echo get_permalink( $lesson->ID ) ?>"><?php echo $lesson->post_title ?></a></h4>
+					<h4><a href="<?php echo esc_url( get_permalink( $lesson->ID ) ) ?>"><?php echo esc_html( $lesson->post_title ) ?></a></h4>
 
 					<p><?php echo fw_ext_learning_get_words( $lesson->post_content, 8 ) ?></p>
 				</div>

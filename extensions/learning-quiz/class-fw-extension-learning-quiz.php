@@ -30,20 +30,36 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 	private $form = null;
 
 	/**
+	 * @var FW_Learning_Quiz_Results
+	 */
+	private $results = null;
+
+	/**
 	 * @internal
 	 */
 	public function _init() {
 		$this->parent      = $this->get_parent();
 		$this->pass_method = new FW_Learning_Quiz_Pass_Lesson();
+		$this->results     = new FW_Learning_Quiz_Results( $this );
+		$this->results->maybe_install();
 
 		$this->add_actions();
 
 		if ( is_admin() ) {
 			$this->admin_actions();
 			$this->admin_filters();
+
+			new FW_Learning_Quiz_Results_Page( $this, $this->results );
 		} else {
 			$this->theme_actions();
 		}
+	}
+
+	/**
+	 * @return FW_Learning_Quiz_Results
+	 */
+	public function get_results() {
+		return $this->results;
 	}
 
 	/**
@@ -272,10 +288,37 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 				'title'   => __( 'Quiz settings', 'fw' ),
 				'type'    => 'tab',
 				'options' => array(
-					$this->get_name() . '-passmark' => array(
-						'label' => __( 'Quiz Passmark Points', 'fw' ),
-						'type'  => 'text',
-						'desc'  => __( 'The points number at which the test will be passed.', 'fw' ),
+					'group_quiz_settings' => array(
+						'type'    => 'group',
+						'options' => array(
+							$this->get_name() . '-passmark'          => array(
+								'label' => __( 'Quiz Passmark Points', 'fw' ),
+								'type'  => 'text',
+								'desc'  => __( 'The points number at which the test will be passed.', 'fw' ),
+							),
+							$this->get_name() . '-show-feedback'     => array(
+								'label' => __( 'Show answer feedback', 'fw' ),
+								'type'  => 'switch',
+								'value' => 'yes',
+								'desc'  => __( 'After submitting, show students which questions they got right or wrong, the correct answer, and any explanation.', 'fw' ),
+								'left-choice'  => array( 'value' => 'yes', 'label' => __( 'Yes', 'fw' ) ),
+								'right-choice' => array( 'value' => 'no', 'label' => __( 'No', 'fw' ) ),
+							),
+							$this->get_name() . '-shuffle-questions' => array(
+								'label' => __( 'Shuffle questions', 'fw' ),
+								'type'  => 'switch',
+								'value' => 'no',
+								'desc'  => __( 'Randomize the order questions are presented in, per attempt.', 'fw' ),
+								'left-choice'  => array( 'value' => 'yes', 'label' => __( 'Yes', 'fw' ) ),
+								'right-choice' => array( 'value' => 'no', 'label' => __( 'No', 'fw' ) ),
+							),
+							$this->get_name() . '-time-limit'        => array(
+								'label' => __( 'Time limit (minutes)', 'fw' ),
+								'type'  => 'text',
+								'value' => 0,
+								'desc'  => __( 'Auto-submit the quiz after this many minutes. Use 0 for no limit.', 'fw' ),
+							),
+						),
 					),
 				)
 			)
@@ -381,6 +424,20 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 			return '';
 		}
 
+		$lesson_id = (int) get_post_field( 'post_parent', $post_id );
+
+		if ( fw_get_db_post_option( $lesson_id, $this->get_name() . '-shuffle-questions' ) === 'yes' ) {
+			shuffle( $inputs );
+		}
+
+		$time_limit = (int) fw_get_db_post_option( $lesson_id, $this->get_name() . '-time-limit' );
+
+		if ( $time_limit > 0 ) {
+			FW_Session::set( $this->get_name() . '-start-time', time() );
+		} else {
+			FW_Session::del( $this->get_name() . '-start-time' );
+		}
+
 		ob_start();
 
 		$this->form->render( array(
@@ -388,6 +445,57 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 			'inputs' => $inputs
 		) );
 
+		$html = ob_get_clean();
+
+		if ( $time_limit > 0 ) {
+			$html .= $this->render_quiz_timer( $time_limit );
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Markup + inline script for the countdown timer that auto-submits at zero.
+	 *
+	 * @param int $minutes
+	 *
+	 * @return string
+	 */
+	private function render_quiz_timer( $minutes ) {
+		$seconds = (int) $minutes * 60;
+
+		$label = esc_html__( 'Time remaining:', 'fw' );
+
+		ob_start();
+		?>
+		<div class="learning-quiz-timer" data-seconds="<?php echo esc_attr( $seconds ); ?>">
+			<?php echo $label; ?> <span class="learning-quiz-timer-display">--:--</span>
+		</div>
+		<script>
+			(function () {
+				var box = document.currentScript.previousElementSibling;
+				if ( ! box || ! box.classList.contains( 'learning-quiz-timer' ) ) {
+					return;
+				}
+				var remaining = parseInt( box.getAttribute( 'data-seconds' ), 10 ) || 0;
+				var display = box.querySelector( '.learning-quiz-timer-display' );
+				var form = box.closest( 'form' ) || ( box.parentNode && box.parentNode.querySelector( 'form' ) );
+				function tick() {
+					var m = Math.floor( remaining / 60 );
+					var s = remaining % 60;
+					display.textContent = ( m < 10 ? '0' : '' ) + m + ':' + ( s < 10 ? '0' : '' ) + s;
+					if ( remaining <= 0 ) {
+						clearInterval( timer );
+						if ( form ) { form.submit(); }
+						return;
+					}
+					remaining--;
+				}
+				tick();
+				var timer = setInterval( tick, 1000 );
+			})();
+		</script>
+		<?php
 		return ob_get_clean();
 	}
 
@@ -527,20 +635,17 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 	 * @return array
 	 */
 	public function _form_validate( $errors ) {
-		if ( ! isset( $_SESSION ) ) {
-			session_start();
-		}
+		$session_key = $this->get_name() . '-form-id';
+		$post_id     = FW_Session::get( $session_key );
 
-		if ( ! isset( $_SESSION[ $this->get_name() . '-form-id' ] ) ) {
+		if ( ! $post_id ) {
 			$errors['invalid-quiz'] = __( 'Invalid Quiz', 'fw' );
 
 			return $errors;
 		}
 
-		$post_id = $_SESSION[ $this->get_name() . '-form-id' ];
-
 		if ( ! $this->is_quiz( $post_id ) ) {
-			unset( $_SESSION[ $this->get_name() . '-form-id' ] );
+			FW_Session::del( $session_key );
 			$errors['invalid-quiz'] = __( 'Invalid Quiz', 'fw' );
 
 			return $errors;
@@ -548,14 +653,14 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 
 		$inputs = fw_get_db_post_option( $post_id, $this->get_name() . '-questions' );
 		if ( ! is_array( $inputs ) ) {
-			unset( $_SESSION[ $this->get_name() . '-form-id' ] );
+			FW_Session::del( $session_key );
 			$errors['invalid-quiz'] = __( 'Invalid Quiz', 'fw' );
 
 			return $errors;
 		}
 
 		if ( ! isset( $inputs['json'] ) ) {
-			unset( $_SESSION[ $this->get_name() . '-form-id' ] );
+			FW_Session::del( $session_key );
 			$errors['invalid-quiz'] = __( 'Invalid Quiz', 'fw' );
 
 			return $errors;
@@ -564,7 +669,7 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 		$inputs = json_decode( $inputs['json'], true );
 
 		if ( empty( $inputs ) ) {
-			unset( $_SESSION[ $this->get_name() . '-form-id' ] );
+			FW_Session::del( $session_key );
 			$errors['invalid-quiz'] = __( 'Invalid Quiz', 'fw' );
 
 			return $errors;
@@ -600,24 +705,87 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 
 		$return = array();
 		$total  = 0;
+		$max    = 0;
 
 		foreach ( $process_response as $response ) {
 			$total += $response->get_current_percentage();
+			$max   += $response->get_max_percentage();
 		}
 
 		$return['questions']         = $process_response;
 		$return['accumulated']       = $total;
+		$return['max']               = $max;
 		$return['minimum-pass-mark'] = (int) fw_get_db_post_option( $post_id, $this->get_name() . '-passmark' );
 
 		do_action( 'fw_ext_learning_quiz_form_process', $return );
 
-		if ( $total >= $return['minimum-pass-mark'] ) {
+		$passed = ( $total >= $return['minimum-pass-mark'] );
+
+		// Server-side time-limit enforcement: a submission that arrives after the
+		// allotted time (plus a small grace for network/clock drift) cannot pass.
+		$lesson_id  = (int) get_post_field( 'post_parent', $post_id );
+		$time_limit = (int) fw_get_db_post_option( $lesson_id, $this->get_name() . '-time-limit' );
+		$start_time = FW_Session::get( $this->get_name() . '-start-time' );
+		FW_Session::del( $this->get_name() . '-start-time' );
+
+		if ( $time_limit > 0 && $start_time && ( time() - (int) $start_time ) > ( $time_limit * 60 + 10 ) ) {
+			$passed = false;
+		}
+
+		$this->record_quiz_attempt( $post_id, $process_response, $total, $max, $return['minimum-pass-mark'], $passed );
+
+		if ( $passed ) {
 			$lesson = get_post( $post_id )->post_parent;
 			$this->pass_method->pass_lesson( $lesson );
 		}
 
 		wp_redirect( fw_current_url() );
 		exit;
+	}
+
+	/**
+	 * Persist one graded attempt into the gradebook.
+	 *
+	 * @param int                                 $quiz_id
+	 * @param FW_Quiz_Question_Process_Response[] $process_response
+	 * @param float                               $total
+	 * @param float                               $max
+	 * @param int                                 $pass_mark
+	 * @param bool                                $passed
+	 */
+	private function record_quiz_attempt( $quiz_id, array $process_response, $total, $max, $pass_mark, $passed ) {
+		if ( ! $this->results ) {
+			return;
+		}
+
+		$quiz   = get_post( $quiz_id );
+		$lesson = $quiz ? (int) $quiz->post_parent : 0;
+		$course = $lesson ? (int) get_post_field( 'post_parent', $lesson ) : 0;
+
+		$details = array();
+		foreach ( $process_response as $response ) {
+			$details[] = array(
+				'question'    => $response->get_question(),
+				'correct'     => $response->get_correct_answer(),
+				'answer'      => $response->get_current_answer(),
+				'earned'      => $response->get_current_percentage(),
+				'possible'    => $response->get_max_percentage(),
+				'explanation' => $response->get_explanation(),
+			);
+		}
+
+		$this->results->record_attempt( array(
+			'user_id'   => get_current_user_id(),
+			'quiz_id'   => (int) $quiz_id,
+			'lesson_id' => $lesson,
+			'course_id' => $course,
+			'score'     => $total,
+			'max_score' => $max,
+			'pass_mark' => $pass_mark,
+			'passed'    => $passed,
+			'status'    => 'graded',
+			'details'   => $details,
+		) );
 	}
 
 	private function add_actions() {
@@ -634,6 +802,24 @@ class FW_Extension_Learning_Quiz extends FW_Extension {
 	private function theme_actions() {
 		add_action( 'wp', array( $this, '_action_theme_define_pass_method' ) );
 		add_action( 'wp', array( $this, '_action_theme_define_form' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, '_action_theme_enqueue_static' ) );
+	}
+
+	/**
+	 * @internal
+	 * Enqueue the front-end quiz stylesheet (feedback + timer) on quiz pages.
+	 */
+	public function _action_theme_enqueue_static() {
+		if ( ! is_singular( $this->quiz_post ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			$this->get_name() . '-frontend',
+			$this->get_declared_URI( '/static/css/quiz-frontend.css' ),
+			array(),
+			$this->manifest->get_version()
+		);
 	}
 
 	private function admin_filters() {
